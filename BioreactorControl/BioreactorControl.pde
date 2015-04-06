@@ -12,7 +12,7 @@ import g4p_controls.*;
 import processing.serial.*;
 
 
-Serial port;      // The serial port, null if no port
+Serial serial;      // The serial port, null if no port
 float updateSpeed = 2000; // 1000 ms
 
 boolean ledState=true;
@@ -22,46 +22,96 @@ PFont titleFont;
 String buffer;
 float measuredTemperature;
 
+GButton btnUpdateDeviceList;
+
+String indexToPrefix(int index) {
+  String prefix="";
+  for (int i=0;i<index;i++)
+    prefix += "$";
+  return prefix;
+}
 
 class Pump {
   float position, speed, maximum;
-  int index;
+  int deviceIndex;
   GCustomSlider slider;
   GLabel label;
   
-  Pump(int index) {
+  String deviceType;
+  
+  Pump(int deviceIndex, GCustomSlider sl) {
     maximum = 100;
-    this.index = index;
-   
+    this.deviceIndex = deviceIndex;
+    slider = sl;
+  }
+  
+  
+  void remove() {
+    label.dispose();
+    slider.dispose();
+  }
+  
+  String prefix() { return indexToPrefix(deviceIndex); }
+  
+  void continuousRotation(float rpm) {
+    serial.write(prefix() + "ct" + (int)rpm + "\n");
+  }
+  
+  void rotate(float rpm, float numRevs) {
+    serial.write(prefix() + "speed " + (int)rpm);
+    serial.write(prefix() + "rotate " + (int) (numRevs * 10));
   }
 };
 
 ArrayList<Pump> pumps=new ArrayList<Pump>();
 
-void addPump()
+void addPump(int deviceIndex, String pumpType)
 {
-  int idx = pumps.size();
+  int pumpIdx = pumps.size();
   GCustomSlider sdr;
     
-  sdr = new GCustomSlider(this, 60, 80 + 60 * idx, 260, 50, "blue18px");
+  sdr = new GCustomSlider(this, 60, 80 + 60 * pumpIdx, 260, 50, "blue18px");
   // show          opaque  ticks value limits
   sdr.setShowDecor(false, true, true, true);
   // there are 3 types
   // GCustomSlider.DECIMAL  e.g.  0.002
   // GCustomSlider.EXPONENT e.g.  2E-3
   // GCustomSlider.INTEGER
-  sdr.setNumberFormat(G4P.DECIMAL, 3);
+  sdr.setNumberFormat(G4P.INTEGER, 0);
   sdr.setLimits(0.5f, 0f, 1.0f);
   
-  Pump p = new Pump(idx);
-  p.slider = sdr;
+  if (pumpType.equals("peristaltic-pump")) {
+    sdr.setLimits(-250, 250);
+  }
+  
+  Pump p = new Pump(deviceIndex, sdr);
 
-  p.label = new GLabel(this, 10, 80 + idx * 60, 60, 20);
-  p.label.setText("Pump " + idx);
+  p.label = new GLabel(this, 10, 65 + pumpIdx * 60, 180, 20);
+  p.label.setText("Pump " + pumpIdx + " (" + pumpType+  ")");
   p.label.setLocalColorScheme(GCScheme.GREEN_SCHEME);
 
   pumps.add(p);
 }
+
+void handleCommand(int deviceIndex, String text)
+{
+  println("device: " +deviceIndex + " sent text:" + text);
+  
+  if (text.startsWith("id:")) {
+    String id = text.substring(3);
+    if (id == "peristaltic-pump")
+      addPump(deviceIndex, id);
+    if (id == "syringe-pump")
+      addPump(deviceIndex, id);
+  }
+}
+
+void updateDeviceList() {
+  for (int i=0;i<10;i++) {
+    serial.write(indexToPrefix(i) + "id" +"\n" ); // this will trigger all devices to send back "id:something"
+  }
+}
+
 
 void setup() {
   size(800, 400);
@@ -77,19 +127,39 @@ void setup() {
   String[] ports = Serial.list();
   if (ports.length > 0) {
     String portName = Serial.list()[0];
-    port = new Serial(this, portName, 57600);
+    serial = new Serial(this, portName, 57600);
+
+    updateDeviceList();
   } else {
-    port=null;
+    serial=null;
     
     // make some fake pumps
-    addPump();
-    addPump();
-    
+    addPump(1, "peristaltic-pump");
+//    addPump();
   }
+    addPump(1, "peristaltic-pump");
   
   ledState=true;
+  
+  btnUpdateDeviceList = new GButton(this, width - 150, 40, 130, 30, "Update device list");
 }
 
+
+void handleSliderEvents(GValueControl slider, GEvent event) {
+//println("integer value:" + slider.getValueI() + " float value:" + slider.getValueF());
+
+  for (Pump p : pumps) {
+    if (p.slider == slider) {
+      println("Pump " + p.deviceIndex + "   value" + slider.getValueF());
+    }
+  }
+}
+
+void handleButtonEvents(GButton button, GEvent event) {
+  if (button == btnUpdateDeviceList) {
+    updateDeviceList();
+  }
+}
 
 
 
@@ -103,17 +173,22 @@ void draw() {
   text("BioHackAcademy Bioreactor Control", 10, 20);
   textFont(defaultFont);
   fill(0);
-  
-  for (int i=0;i<pumps.size();i++) {
-  }
 }
 
-void serialEvent(Serial port) {
-  while (port.available () >0) {
-    char c = port.readChar();
+void serialEvent(Serial serial) {
+  while (serial.available () >0) {
+    char c = serial.readChar();
     if (c == '\n' && buffer.length() > 0) {
       
+      int deviceIndex = 0;
+
+      // the number of $ prefixes indicates which device the current text is coming from. Every device in the chain adds one $      
+      while (buffer.charAt(0) == '$') {
+        buffer = buffer.substring(1);
+        deviceIndex ++;
+      }
       
+      handleCommand (deviceIndex,buffer);
       
       buffer="";
     } else {
@@ -129,10 +204,5 @@ void keyPressed() {
   if (key == 'e') {
     
   }
-}
-
-
-void handleSliderEvents(GSlider slider, GEvent event) {
-  println("integer value:" + slider.getValueI() + " float value:" + slider.getValueF());
 }
 
