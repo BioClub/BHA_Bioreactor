@@ -4,6 +4,9 @@ Bioreactor Control
 We have build the bioreactor as an extensible device. 
 Additional devices can be chained by serial connections.
 
+This code is using the G4P user interface library to handle things like sliders. 
+Go to Sketch/Import library to download it and see http://www.lagers.org.uk/g4p/ref/ for documentation
+
 */
 import g4p_controls.*;
 import processing.serial.*;
