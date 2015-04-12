@@ -4,7 +4,16 @@ Bioreactor Control
  This code is using the G4P user interface library to handle things like sliders. 
  Go to Sketch/Import library to download it and see http://www.lagers.org.uk/g4p/ref/ for documentation
  
- */
+ 
+In a nutshell, this program works in the following way:
+
+- The bioreactor and pumps are all plugged in
+- So multiple arduino's are connected, with each their own COM port.
+- The program sends "id" to each arduino, which responds with either "id:bioreactor", "id:peristaltic-pump", or "id:syringe-pump", 
+    so the processing code knows which COM port is connected to which device
+- Each pump gets a slider to control pumping speed
+- The bioreactor has a slider to control temperature.
+*/
 import g4p_controls.*;
 import processing.serial.*;
 import java.util.*;
@@ -20,6 +29,9 @@ float measuredTemperature;
 GButton btnUpdateDeviceList;
 GCustomSlider tempSlider;
 
+/*
+ Each serial port (bioreactor, pumps) needs to have its own string buffer to buffer individual lines
+*/
 class SerialPortBuffer {
   String buffer;
   Serial port;
@@ -262,14 +274,6 @@ void serialEvent(Serial serial) {
         spb.buffer+=c;
       }
     }
-  }
-}
-
-void keyPressed() {
-  if (key >= 'A' && key <= 'Z')
-    key += 'a'-'A'; // make lowercase
-
-  if (key == 'e') {
   }
 }
 
