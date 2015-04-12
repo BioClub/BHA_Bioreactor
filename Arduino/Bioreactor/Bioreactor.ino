@@ -1,22 +1,9 @@
-/*
-
-Device chaining:
-Devices can be chained by connecting another device to software serial pins (rx=8 and tx=9)
-Connect the RX pin (8) to the TX pin of the next device, and the TX pin (9) to the RX of the next device (Typically pin 0/1).
-Commands to the next device can be send by prefixing a line with a $ character. 
-Data coming from the chained device is also prefixed and sent into the serial port.
-*/
 #include <SoftwareSerial.h>
 #include <OneWire.h>
 
 #define LED_PIN 13
 #define TEMP_SENSOR_PIN 10
 
-
-#define CHAIN_SERIAL_RX_PIN 8
-#define CHAIN_SERIAL_TX_PIN 9
-SoftwareSerial chainedDeviceSerial(CHAIN_SERIAL_RX_PIN, CHAIN_SERIAL_TX_PIN);
-String chainedDeviceBuffer;
 
 uint32_t lastTick = 0; 
 String buffer;
@@ -81,8 +68,6 @@ void setup() {
 
   // initialize the LED pin as an output:
   pinMode(LED_PIN, OUTPUT);
-
-  chainedDeviceSerial.begin(9600);
 }
 
 
@@ -98,25 +83,20 @@ void loop() {
   
   if (time > lastUpdate + 100) {
     lastUpdate=time;
-  }
-   
-  while (chainedDeviceSerial.available()>0) {
-    char c = (char)chainedDeviceSerial.read();
-    if (c == '\n') {
-      Serial.print("$"); Serial.println(chainedDeviceBuffer);
-      chainedDeviceBuffer = "";
-    } else {
-      if (chainedDeviceBuffer.length()<100)
-        chainedDeviceBuffer += c;
-    }
-  }
-   
     
+    Serial.print("temp "); Serial.println(analogRead(0)/10); // just simple test for now
+  }
+       
   while (Serial.available()>0) {
     char c = (char)Serial.read();
     if (c == '\n') {
-      if (buffer.startsWith("$")) {
-        chainedDeviceSerial.println(buffer.substring(1));
+      if (buffer.startsWith("id")) {
+        Serial.println("id:bioreactor");
+      }
+      else if(buffer.startsWith("temp")) {
+        int temp = buffer.substring(4).toInt();
+        
+        // TODO: change mosfet duty here
       }
       else {
         Serial.println("Unknown cmd.");
