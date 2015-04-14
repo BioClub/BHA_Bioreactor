@@ -26,6 +26,7 @@ float updateSpeed = 2000; // 1000 ms
 boolean ledState=true;
 PFont defaultFont;
 PFont titleFont;
+int pumpIdx;
 
 String buffer;
 float measuredTemperature;
@@ -106,12 +107,11 @@ class Pump {
 
 HashMap<Serial, Pump> pumps=new HashMap<Serial, Pump>();
 
-void addPump(String pumpType, Serial serialPort)
+void addPump(String pumpType, Serial serialPort, int pumpIdx)
 {
-  int pumpIdx = pumps.size();
   GCustomSlider sdr;
 
-  sdr = new GCustomSlider(this, 60, 80 + 60 * pumpIdx, 260, 50, "blue18px");
+  sdr = new GCustomSlider(this, 60, 80 + 120 * pumpIdx, 260, 50, "blue18px");
   // show          opaque  ticks value limits
   sdr.setShowDecor(false, true, true, true);
   // there are 3 types
@@ -125,9 +125,13 @@ void addPump(String pumpType, Serial serialPort)
     sdr.setLimits(-1000, 1000);
   }
 
+  if (pumpType.equals("syringe-pump")) {
+    sdr.setLimits(-1000, 1000);
+  }  
+
   Pump p = new Pump(sdr, serialPort);
 
-  p.label = new GLabel(this, 10, 65 + pumpIdx * 60, 180, 20);
+  p.label = new GLabel(this, 10, 65 + pumpIdx * 120, 180, 20);
   p.label.setText("Pump " + pumpIdx + " (" + pumpType+  ")");
   p.label.setLocalColorScheme(GCScheme.GREEN_SCHEME);
 
@@ -147,8 +151,7 @@ void updateDeviceList() {
   for (int i=0; i<portNames.length; i++) {
     if (!serialPorts.containsKey(portNames[i])) {
       if(i == 2 || i == 3) {
-        Serial port=new Serial(this, portNames[i], 9600);
-  
+        Serial port=new Serial(this, portNames[i], 9600); 
         SerialPortBuffer spb = new SerialPortBuffer();
         spb.port=port;
         serialPorts.put(portNames[i], spb);
@@ -235,12 +238,12 @@ void initDevice(String deviceID, Serial serial)
   } 
 
   if (deviceID.equals("peristaltic-pump")) {
-    addPump(deviceID, serial);
+    addPump(deviceID, serial, 0);
     println("peristaltic pump connected.");
   } 
 
   if (deviceID.equals("syringe-pump")) {
-    addPump(deviceID, serial);
+    addPump(deviceID, serial, 1);
     println("syringe pump connected.");
   }
 }
