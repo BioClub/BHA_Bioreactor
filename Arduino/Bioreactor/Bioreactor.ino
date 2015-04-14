@@ -1,14 +1,16 @@
+// Include libraries
 #include <SoftwareSerial.h>
 #include <OneWire.h>
 
+// Declare variables
 #define LED_PIN 13
 #define TEMP_SENSOR_PIN 10
-
 
 uint32_t lastTick = 0; 
 String buffer;
 uint32_t lastUpdate=0;
 
+// Initiate temperature sensor
 OneWire tempSensor(TEMP_SENSOR_PIN);
 
 float getTemp(){
@@ -55,7 +57,6 @@ float getTemp(){
  float temperatureSum = tempRead / 16;
  
  return temperatureSum;
- 
 }
 
 // the setup function runs once when you press reset or power the board

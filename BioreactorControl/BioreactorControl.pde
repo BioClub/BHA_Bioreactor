@@ -14,10 +14,13 @@ In a nutshell, this program works in the following way:
 - Each pump gets a slider to control pumping speed
 - The bioreactor has a slider to control temperature.
 */
+
+// Include libraries
 import g4p_controls.*;
 import processing.serial.*;
 import java.util.*;
 
+// Declare variables
 float updateSpeed = 2000; // 1000 ms
 
 boolean ledState=true;
@@ -34,7 +37,7 @@ GCustomSlider tempSlider;
 */
 class SerialPortBuffer {
   String buffer;
-  Serial port;
+  Serial port; 
 }
 HashMap<String, SerialPortBuffer> serialPorts=new HashMap<String, SerialPortBuffer>();
 Serial bioreactorSerial;
@@ -97,6 +100,7 @@ class Pump {
 
   void continuousRotation(float rpm) {
     port.write("move" + (int)rpm + "\n");
+    println("move" + (int)rpm);
   }
 };
 
@@ -118,7 +122,7 @@ void addPump(String pumpType, Serial serialPort)
   sdr.setLimits(0.5f, 0f, 1.0f);
 
   if (pumpType.equals("peristaltic-pump")) {
-    sdr.setLimits(-250, 250);
+    sdr.setLimits(-1000, 1000);
   }
 
   Pump p = new Pump(sdr, serialPort);
@@ -142,12 +146,14 @@ void updateDeviceList() {
 
   for (int i=0; i<portNames.length; i++) {
     if (!serialPorts.containsKey(portNames[i])) {
-      Serial port=new Serial(this, portNames[i], 9600);
-
-      SerialPortBuffer spb = new SerialPortBuffer();
-      spb.port=port;
-      serialPorts.put(portNames[i], spb);
-      port.write("\nid\n");
+      if(i == 2 || i == 3) {
+        Serial port=new Serial(this, portNames[i], 9600);
+  
+        SerialPortBuffer spb = new SerialPortBuffer();
+        spb.port=port;
+        serialPorts.put(portNames[i], spb);
+        port.write("\nid\n");
+      }
     }
   }
 }
