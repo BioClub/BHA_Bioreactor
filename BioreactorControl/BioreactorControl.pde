@@ -272,7 +272,6 @@ void serialEvent(Serial serial) {
         } else if (pumps.containsKey(serial)) {
           pumps.get(serial).processSerialLine(spb.buffer);
         } else {
-          //          port.write("id\n");
           if (spb.buffer.startsWith("id:")) {
             initDevice(spb.buffer.substring(3).trim(), serial);
           } else
